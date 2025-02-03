@@ -1,6 +1,58 @@
-<h1>Heading 1</h1>
-<h2>Heading 2</h2>
-<h3>Heading 3</h3>
-<h4>Heading 4</h4>
-<h5>Heading 5</h5>
-<h6>Heading 6</h6>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Check-in</title>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #reader { width: 300px; margin: auto; }
+        #result { margin-top: 20px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h2>Guest Check-in Tool</h2>
+    <div id="reader"></div>
+    <div id="result"></div>
+
+    <script>
+        function showPopup(message, color = "green") {
+            let resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = message;
+            resultDiv.style.color = color;
+        }
+
+        function onScanSuccess(qrCodeMessage) {
+            fetch("YOUR_GOOGLE_APPS_SCRIPT_URL", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ qr_code: qrCodeMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    showPopup(`✅ Welcome, ${data.name}! Checked in at: ${data.time}`, "green");
+                } else if (data.status === "already_checked_in") {
+                    showPopup(`⚠️ ${data.name} is already checked in!`, "orange");
+                } else {
+                    showPopup("❌ Invalid Pass! Entry not found.", "red");
+                }
+            })
+            .catch(error => showPopup("Error checking in! Try again.", "red"));
+        }
+
+        function onScanError(errorMessage) {
+            console.log(errorMessage);
+        }
+
+        let html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            onScanSuccess,
+            onScanError
+        );
+    </script>
+</body>
+</html>
