@@ -1,11 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Check-in</title>
     <title>Guest Check-In</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #reader { width: 300px; margin: auto; display: none; }
+        #result { margin-top: 20px; font-size: 18px; }
+        button { margin-top: 10px; padding: 10px; font-size: 16px; }
         body {
             font-family: Arial, sans-serif;
             text-align: center;
@@ -23,63 +26,77 @@
     </style>
 </head>
 <body>
+    <h2>Guest Check-in Tool</h2>
+    <button onclick="startScanner()">Start QR Scanner</button>
+    <div id="reader"></div>
+    <div id="result"></div>
 
+    <script>
+        let scanner;
     <h1>Guest Check-In</h1>
     <p>Scan the QR code on the guest pass</p>
 
+        function startScanner() {
+            document.getElementById("reader").style.display = "block";
+            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     <div id="reader"></div>
     <div class="status" id="statusMessage"></div>
 
+            scanner.render(onScanSuccess, onScanError);
+        }
     <script>
-    function scanQRCode() {
-        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-        scanner.addListener('scan', function (content) {
-            console.log("QR Code Scanned: ", content);
+        const API_URL = "https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec";
 
-            // Prepare the data to send
-            let postData = JSON.stringify({ qr_code: content });
-
-            // Send to Google Apps Script
+        function onScanSuccess(qrCodeMessage) {
+            scanner.clear();
             fetch("https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec", {
+        function checkInGuest(qrCode) {
+            fetch(API_URL, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: postData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ qr_code: qrCodeMessage })
+                body: JSON.stringify({ qr_code: qrCode })
             })
             .then(response => response.json())
             .then(data => {
-                console.log("Response from API:", data);
-
                 if (data.status === "success") {
-                    alert(`✅ Check-in successful! Welcome, ${data.name}. Time: ${data.time}`);
+                    showPopup(`✅ Welcome, ${data.name}! Checked in at: ${data.time}`, "green");
+                    alert(`✅ Welcome, ${data.name}! Checked in at: ${data.time}`);
+                    document.getElementById("statusMessage").innerHTML = `✅ Welcome, ${data.name}! Checked in at: ${data.time}`;
                 } else if (data.status === "already_checked_in") {
+                    showPopup(`⚠️ ${data.name} is already checked in!`, "orange");
                     alert(`⚠️ ${data.name} has already checked in!`);
+                    document.getElementById("statusMessage").innerHTML = `⚠️ ${data.name} has already checked in!`;
                 } else if (data.status === "not_found") {
-                    alert("❌ QR Code not found! Invalid pass.");
+                    alert("❌ Entry code not found! Invalid pass.");
+                    document.getElementById("statusMessage").innerHTML = "❌ Entry code not found!";
                 } else {
-                    alert("⚠️ Error checking in! Try again.");
+                    showPopup("❌ Invalid Pass! Entry not found.", "red");
+                    alert(`⚠️ Error: ${data.message}`);
+                    document.getElementById("statusMessage").innerHTML = `⚠️ Error: ${data.message}`;
                 }
             })
+            .catch(error => showPopup("Error checking in! Try again.", "red"));
             .catch(error => {
-                console.error("Error:", error);
-                alert("⚠️ Error checking in! Try again.");
+                alert("❌ Error checking in! Try again.");
+                document.getElementById("statusMessage").innerHTML = "❌ Error checking in!";
             });
-        });
+        }
 
-        Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-                scanner.start(cameras[0]);
-            } else {
-                alert("No cameras found.");
-            }
-        }).catch(function (e) {
-            console.error(e);
-            alert("Error accessing camera.");
-        });
-    }
-</script>
+        function onScanError(errorMessage) {
+            console.log(errorMessage);
+        function onScanSuccess(decodedText, decodedResult) {
+            checkInGuest(decodedText);
+            html5QrcodeScanner.clear();
+        }
 
-
+        function showPopup(message, color = "green") {
+            let resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = message;
+            resultDiv.style.color = color;
+        }
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
 </body>
 </html>
