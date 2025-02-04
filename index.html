@@ -24,7 +24,7 @@
         }
 
         function onScanSuccess(qrCodeMessage) {
-            fetch("YOUR_GOOGLE_APPS_SCRIPT_URL", {
+            fetch("https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ qr_code: qrCodeMessage })
