@@ -1,102 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guest Check-in</title>
-    <title>Guest Check-In</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        #reader { width: 300px; margin: auto; display: none; }
+        #reader { width: 300px; margin: auto; }
         #result { margin-top: 20px; font-size: 18px; }
-        button { margin-top: 10px; padding: 10px; font-size: 16px; }
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-        }
-        #reader {
-            width: 300px;
-            margin: auto;
-        }
-        .status {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
-    <h2>Guest Check-in Tool</h2>
-    <button onclick="startScanner()">Start QR Scanner</button>
+    <h2>Guest Check-in</h2>
     <div id="reader"></div>
-    <div id="result"></div>
+    <p id="result"></p>
 
     <script>
-        let scanner;
-    <h1>Guest Check-In</h1>
-    <p>Scan the QR code on the guest pass</p>
-
-        function startScanner() {
-            document.getElementById("reader").style.display = "block";
-            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    <div id="reader"></div>
-    <div class="status" id="statusMessage"></div>
-
-            scanner.render(onScanSuccess, onScanError);
-        }
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec";
-
-        function onScanSuccess(qrCodeMessage) {
-            scanner.clear();
-            fetch("https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec", {
-        function checkInGuest(qrCode) {
-            fetch(API_URL, {
+        const scriptURL = "https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec";
+        
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById("result").innerText = "Checking in...";
+            fetch(scriptURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ qr_code: qrCodeMessage })
-                body: JSON.stringify({ qr_code: qrCode })
+                body: JSON.stringify({ qr_code: decodedText })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === "success") {
-                    showPopup(`✅ Welcome, ${data.name}! Checked in at: ${data.time}`, "green");
-                    alert(`✅ Welcome, ${data.name}! Checked in at: ${data.time}`);
-                    document.getElementById("statusMessage").innerHTML = `✅ Welcome, ${data.name}! Checked in at: ${data.time}`;
+                    document.getElementById("result").innerHTML = `<span style='color:green;'>Welcome, ${data.name}! Checked in at ${data.time}.</span>`;
                 } else if (data.status === "already_checked_in") {
-                    showPopup(`⚠️ ${data.name} is already checked in!`, "orange");
-                    alert(`⚠️ ${data.name} has already checked in!`);
-                    document.getElementById("statusMessage").innerHTML = `⚠️ ${data.name} has already checked in!`;
+                    document.getElementById("result").innerHTML = `<span style='color:orange;'>${data.name} is already checked in.</span>`;
                 } else if (data.status === "not_found") {
-                    alert("❌ Entry code not found! Invalid pass.");
-                    document.getElementById("statusMessage").innerHTML = "❌ Entry code not found!";
+                    document.getElementById("result").innerHTML = `<span style='color:red;'>Invalid QR code.</span>`;
                 } else {
-                    showPopup("❌ Invalid Pass! Entry not found.", "red");
-                    alert(`⚠️ Error: ${data.message}`);
-                    document.getElementById("statusMessage").innerHTML = `⚠️ Error: ${data.message}`;
+                    document.getElementById("result").innerHTML = `<span style='color:red;'>Error: ${data.message}</span>`;
                 }
             })
-            .catch(error => showPopup("Error checking in! Try again.", "red"));
             .catch(error => {
-                alert("❌ Error checking in! Try again.");
-                document.getElementById("statusMessage").innerHTML = "❌ Error checking in!";
+                document.getElementById("result").innerHTML = `<span style='color:red;'>Request failed. Try again.</span>`;
             });
         }
 
-        function onScanError(errorMessage) {
-            console.log(errorMessage);
-        function onScanSuccess(decodedText, decodedResult) {
-            checkInGuest(decodedText);
-            html5QrcodeScanner.clear();
-        }
-
-        function showPopup(message, color = "green") {
-            let resultDiv = document.getElementById("result");
-            resultDiv.innerHTML = message;
-            resultDiv.style.color = color;
-        }
-        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-        html5QrcodeScanner.render(onScanSuccess);
+        let html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            onScanSuccess
+        ).catch(err => { console.error(err); });
     </script>
 </body>
 </html>
