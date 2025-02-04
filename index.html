@@ -3,73 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guest Check-in</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <title>Guest Check-In</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        #reader { width: 300px; margin: auto; }
-        #result { margin-top: 20px; font-size: 18px; }
-        #startScan { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
     </style>
 </head>
 <body>
-    <h2>Guest Check-in</h2>
-    <button id="startScan">Start QR Scanner</button>
-    <div id="reader" style="display:none;"></div>
-    <p id="result"></p>
+    <div class="container">
+        <h1>Guest Check-In</h1>
+        <label for="qrCode">Enter QR Code:</label>
+        <input type="text" id="qrCode" placeholder="Scan or enter QR code">
+        <button onclick="checkInGuest()">Check In</button>
+        <div class="response" id="response"></div>
+    </div>
 
     <script>
-        const scriptURL = "https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec";
-        let html5QrCode;
+        function checkInGuest() {
+            const qrCode = document.getElementById('qrCode').value;
+            const responseDiv = document.getElementById('response');
 
-        document.getElementById("startScan").addEventListener("click", () => {
-            document.getElementById("reader").style.display = "block";
-            html5QrCode = new Html5Qrcode("reader");
+            if (!qrCode) {
+                responseDiv.innerHTML = '<p style="color: red;">Please enter a QR code.</p>';
+                return;
+            }
 
-            Html5Qrcode.getCameras().then(cameras => {
-                if (cameras.length > 0) {
-                    html5QrCode.start(
-                        cameras[1].id,
-                        { fps: 10, qrbox: 250 },
-                        onScanSuccess,
-                        onScanFailure
-                    ).catch(err => console.error("Camera Error: ", err));
-                } else {
-                    alert("No camera found!");
-                }
-            }).catch(err => {
-                console.error("Camera Access Denied: ", err);
-                alert("Please grant camera permissions and try again.");
-            });
-        });
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbyaHoapf5b6l6NsT-Jy5mWCPn4AxjQNf50uRuO6r5s/dev';
 
-        function onScanSuccess(decodedText) {
-            document.getElementById("result").innerText = "Checking in...";
-            fetch(scriptURL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ qr_code: decodedText })
+            fetch(webAppUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ qr_code: qrCode }),
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === "success") {
-                    document.getElementById("result").innerHTML = `<span style='color:green;'>Welcome, ${data.name}! Checked in at ${data.time}.</span>`;
-                } else if (data.status === "already_checked_in") {
-                    document.getElementById("result").innerHTML = `<span style='color:orange;'>${data.name} is already checked in.</span>`;
+                if (data.status === 'success') {
+                    responseDiv.innerHTML = `<p style="color: green;">Check-in successful!<br>Name: ${data.name}<br>Time: ${data.time}</p>`;
+                } else if (data.status === 'already_checked_in') {
+                    responseDiv.innerHTML = `<p style="color: orange;">Guest already checked in.<br>Name: ${data.name}</p>`;
+                } else if (data.status === 'not_found') {
+                    responseDiv.innerHTML = '<p style="color: red;">Guest not found.</p>';
                 } else {
-                    document.getElementById("result").innerHTML = `<span style='color:red;'>Invalid QR code.</span>`;
+                    responseDiv.innerHTML = `<p style="color: red;">Error: ${data.message || 'Unknown error'}</p>`;
                 }
-                html5QrCode.stop();
             })
             .catch(error => {
-                console.error("Request Failed: ", error);
-                document.getElementById("result").innerHTML = `<span style='color:red;'>Check-in failed. Try again.</span>`;
-                html5QrCode.stop();
+                responseDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
             });
-        }
-
-        function onScanFailure(error) {
-            console.warn(`QR scan failed: ${error}`);
         }
     </script>
 </body>
