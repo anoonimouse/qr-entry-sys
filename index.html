@@ -4,101 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guest Check-In</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyaSEm-3cWodhjxgNEC-kAdaLQM6R5tq3CNS6tsxTf4dgsZRwQ_0QD1JCPb5LsnVeT6/exec";
+        
+        async function checkInGuest(qrCode) {
+            try {
+                let response = await fetch(`${API_URL}?code=${qrCode}`);
+                let result = await response.json();
+                
+                if (result.status === "success") {
+                    alert(`✅ Welcome, ${result.name}! Checked in successfully.`);
+                } else if (result.status === "already_checked_in") {
+                    alert(`❌ ${result.name} has already checked in!`);
+                } else {
+                    alert("❌ Invalid Pass! No record found.");
+                }
+            } catch (error) {
+                alert("❌ Error connecting to the server.");
+                console.error(error);
+            }
         }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        
+        function onScanSuccess(decodedText) {
+            checkInGuest(decodedText);
         }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #28a745;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #218838;
-        }
-        .response {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            background-color: #e9ecef;
-        }
-    </style>
+        
+        window.onload = function () {
+            let scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+            scanner.render(onScanSuccess);
+        };
+    </script>
 </head>
 <body>
-    <div class="container">
-        <h1>Guest Check-In</h1>
-        <label for="qrCode">Enter QR Code:</label>
-        <input type="text" id="qrCode" placeholder="Scan or enter QR code">
-        <button onclick="checkInGuest()">Check In</button>
-        <div class="response" id="response"></div>
-    </div>
-
-    <script>
-        function checkInGuest() {
-            const qrCode = document.getElementById('qrCode').value;
-            const responseDiv = document.getElementById('response');
-
-            if (!qrCode) {
-                responseDiv.innerHTML = '<p style="color: red;">Please enter a QR code.</p>';
-                return;
-            }
-
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbyaHoapf5b6l6NsT-Jy5mWCPn4AxjQNf50uRuO6r5s/dev';
-
-            fetch(webAppUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ qr_code: qrCode }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    responseDiv.innerHTML = `<p style="color: green;">Check-in successful!<br>Name: ${data.name}<br>Time: ${data.time}</p>`;
-                } else if (data.status === 'already_checked_in') {
-                    responseDiv.innerHTML = `<p style="color: orange;">Guest already checked in.<br>Name: ${data.name}</p>`;
-                } else if (data.status === 'not_found') {
-                    responseDiv.innerHTML = '<p style="color: red;">Guest not found.</p>';
-                } else {
-                    responseDiv.innerHTML = `<p style="color: red;">Error: ${data.message || 'Unknown error'}</p>`;
-                }
-            })
-            .catch(error => {
-                responseDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-            });
-        }
-    </script>
+    <h2>Guest Check-In System</h2>
+    <div id="qr-reader" style="width: 300px;"></div>
 </body>
 </html>
